@@ -1,30 +1,24 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const MAX_BYTES = 1_048_576;
+const sourcePath = join(dirname(fileURLToPath(import.meta.url)), "entry.png");
+const data = readFileSync(sourcePath);
 
-const here = dirname(fileURLToPath(import.meta.url));
-const sourcePath = join(here, "entry.png");
-const bytes = readFileSync(sourcePath);
-
-if (bytes.length === 0) {
+const MAX_BYTES = 1024 * 1024;
+if (data.length === 0) {
   throw new Error("entry.png is empty");
 }
-if (bytes.length > MAX_BYTES) {
-  throw new Error(`entry.png is ${bytes.length} bytes, over the ${MAX_BYTES}-byte limit`);
+if (data.length > MAX_BYTES) {
+  throw new Error(`entry.png is ${data.length} bytes, exceeds 1 MiB limit`);
 }
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
-mkdirSync(outDir, { recursive: true });
-const outPath = join(outDir, "entry.png");
-writeFileSync(outPath, bytes);
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
+mkdirSync(outputDir, { recursive: true });
+const outputPath = join(outputDir, "entry.png");
+writeFileSync(outputPath, data);
 
-const written = readFileSync(outPath);
-if (!written.equals(bytes)) {
-  throw new Error(
-    `output bytes differ from entry.png: wrote ${bytes.length} bytes, read back ${written.length}`
-  );
+const written = readFileSync(outputPath);
+if (!data.equals(written)) {
+  throw new Error("output verification failed: entry.png bytes differ");
 }
-
-console.log(`wrote ${outPath} (${bytes.length} bytes)`);
